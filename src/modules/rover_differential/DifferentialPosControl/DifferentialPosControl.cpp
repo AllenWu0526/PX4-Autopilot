@@ -97,9 +97,10 @@ void DifferentialPosControl::updateSubscriptions()
 		}
 
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
-		const Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-		const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_speed_body_x = fabsf(velocity_in_body_frame(0)) > _param_ro_speed_th.get() ? velocity_in_body_frame(0) : 0.f;
+		Vector3f velocity_ned(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
+		Vector3f velocity_xyz = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_ned);
+		Vector2f velocity_2d = Vector2f(velocity_xyz(0), velocity_xyz(1));
+		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
 }
@@ -247,7 +248,7 @@ void DifferentialPosControl::autoPositionMode()
 	pure_pursuit_status.timestamp = _timestamp;
 	float yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
 			     _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
-			     fabsf(_vehicle_speed_body_x));
+			     fabsf(_vehicle_speed));
 	_pure_pursuit_status_pub.publish(pure_pursuit_status);
 	const float heading_error = matrix::wrap_pi(yaw_setpoint - _vehicle_yaw);
 
