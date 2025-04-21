@@ -78,9 +78,19 @@ public:
 	~AckermannPosControl() = default;
 
 	/**
-	 * @brief Update position controller.
+	 * @brief Update position control
 	 */
 	void updatePosControl();
+
+	/**
+	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint.
+	 */
+	void manualPositionMode(hrt_abstime timestamp, float dt);
+
+	/**
+	 * @brief Generate and publish roverVelocitySetpoint from positionSetpointTriplet.
+	 */
+	void autoPositionMode(hrt_abstime timestamp, float dt);
 
 protected:
 	/**
@@ -95,35 +105,10 @@ private:
 	void updateSubscriptions();
 
 	/**
-	 * @brief Generate and publish roverPositionSetpoint from position of trajectorySetpoint.
-	 */
-	void generatePositionSetpoint();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint (Position Mode) or
-	 * 	  positionSetpointTriplet (Auto Mode) or roverPositionSetpoint.
-	 */
-	void generateVelocitySetpoint();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from manualControlSetpoint.
-	 */
-	void manualPositionMode();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from positionSetpointTriplet.
-	 */
-	void autoPositionMode();
-
-	/**
-	 * @brief Generate and publish roverVelocitySetpoint from roverPositionSetpoint.
-	 */
-	void goToPositionMode();
-
-	/**
 	 * @brief Update global/NED waypoint coordinates and acceptance radius.
+	 * @param timestamp Current timestamp [us].
 	 */
-	void updateWaypointsAndAcceptanceRadius();
+	void updateWaypointsAndAcceptanceRadius(hrt_abstime timestamp);
 
 	/**
 	 * @brief Publish the acceptance radius for current waypoint based on the angle between a line segment
@@ -134,10 +119,12 @@ private:
 	 * @param acceptance_radius_max Maximum value for the acceptance radius [m].
 	 * @param wheel_base Rover wheelbase [m].
 	 * @param max_steer_angle Rover maximum steer angle [rad].
+	 * @param timestamp Current timestamp [us].
 	 * @return Updated acceptance radius [m].
 	 */
 	float updateAcceptanceRadius(float waypoint_transition_angle, float default_acceptance_radius,
-				     float acceptance_radius_gain, float acceptance_radius_max, float wheel_base, float max_steer_angle);
+				     float acceptance_radius_gain, float acceptance_radius_max, float wheel_base, float max_steer_angle,
+				     hrt_abstime timestamp);
 
 	/**
 	 * @brief Calculate the speed setpoint. During cornering the speed is restricted based on the radius of the corner.
@@ -176,8 +163,6 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
-	vehicle_control_mode_s _vehicle_control_mode{};
-	offboard_control_mode_s _offboard_control_mode{};
 	rover_position_setpoint_s _rover_position_setpoint{};
 
 	// uORB publications
@@ -187,15 +172,14 @@ private:
 	uORB::Publication<rover_position_setpoint_s>	 _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Variables
-	hrt_abstime _timestamp{0};
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _pos_ctl_course_direction{};
 	Vector2f _pos_ctl_start_position_ned{};
+	Vector2f _start_ned{};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	float _min_speed{0.f}; // Speed at which the maximum yaw rate limit is enforced given the maximum steer angle and wheel base.
-	float _dt{0.f};
 	int _curr_wp_type{position_setpoint_s::SETPOINT_TYPE_IDLE};
 	bool _course_control{false}; // Indicates if the rover is doing course control in manual position mode.
 	bool _prev_param_check_passed{true};

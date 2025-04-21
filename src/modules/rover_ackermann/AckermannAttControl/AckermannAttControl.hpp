@@ -73,6 +73,11 @@ public:
 	 */
 	void updateAttControl();
 
+	/**
+	 * @brief Stabilized mode
+	 */
+	void stabMode();
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -80,11 +85,6 @@ protected:
 	void updateParams() override;
 
 private:
-	/**
-	 * @brief Generate and publish roverAttitudeSetpoint and roverThrottleSetpoint from manualControlSetpoint (Stab Mode).
-	 */
-	void generateAttitudeAndThrottleSetpoint();
-
 	/**
 	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
 	 */

@@ -84,10 +84,6 @@ void AckermannAttControl::updateAttControl()
 						  -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
 		}
 
-		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			generateAttitudeAndThrottleSetpoint();
-		}
-
 		generateRateSetpoint();
 
 	} else { // Reset pid and slew rate when attitude control is not active
@@ -104,50 +100,46 @@ void AckermannAttControl::updateAttControl()
 
 }
 
-void AckermannAttControl::generateAttitudeAndThrottleSetpoint()
+void AckermannAttControl::stabMode()
 {
-	const bool stab_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
-				       && !_vehicle_control_mode.flag_control_position_enabled && _vehicle_control_mode.flag_control_attitude_enabled;
+	if (_vehicle_attitude_sub.updated()) {
+		vehicle_attitude_s vehicle_attitude{};
+		_vehicle_attitude_sub.copy(&vehicle_attitude);
+		matrix::Quatf vehicle_attitude_quaternion = matrix::Quatf(vehicle_attitude.q);
+		_vehicle_yaw = matrix::Eulerf(vehicle_attitude_quaternion).psi();
+	}
 
-	if (stab_mode_enabled && _manual_control_setpoint_sub.updated()) { // Stab Mode
-		manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	rover_throttle_setpoint_s rover_throttle_setpoint{};
+	rover_throttle_setpoint.timestamp = hrt_absolute_time();
+	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
+	rover_throttle_setpoint.throttle_body_y = 0.f;
+	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
 
-		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+	const float yaw_delta = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+				_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate / _param_ro_yaw_p.get(),
+				_max_yaw_rate / _param_ro_yaw_p.get());
 
-			rover_throttle_setpoint_s rover_throttle_setpoint{};
-			rover_throttle_setpoint.timestamp = _timestamp;
-			rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-			rover_throttle_setpoint.throttle_body_y = 0.f;
-			_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	if (fabsf(yaw_delta) > FLT_EPSILON
+	    || fabsf(rover_throttle_setpoint.throttle_body_x) < FLT_EPSILON) { // Closed loop yaw rate control
+		_stab_yaw_ctl = false;
+		const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + matrix::sign(manual_control_setpoint.throttle) * yaw_delta);
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		rover_attitude_setpoint.timestamp = hrt_absolute_time();
+		rover_attitude_setpoint.yaw_setpoint = yaw_setpoint;
+		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 
-			const float yaw_delta = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
-						_param_ro_yaw_stick_dz.get()), -1.f, 1.f, -_max_yaw_rate / _param_ro_yaw_p.get(),
-						_max_yaw_rate / _param_ro_yaw_p.get());
-
-			if (fabsf(yaw_delta) > FLT_EPSILON
-			    || fabsf(rover_throttle_setpoint.throttle_body_x) < FLT_EPSILON) { // Closed loop yaw rate control
-				_stab_yaw_ctl = false;
-				const float yaw_setpoint = matrix::wrap_pi(_vehicle_yaw + matrix::sign(manual_control_setpoint.throttle) * yaw_delta);
-				rover_attitude_setpoint_s rover_attitude_setpoint{};
-				rover_attitude_setpoint.timestamp = _timestamp;
-				rover_attitude_setpoint.yaw_setpoint = yaw_setpoint;
-				_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-
-			} else { // Closed loop yaw control if the yaw rate input is zero (keep current yaw)
-				if (!_stab_yaw_ctl) {
-					_stab_yaw_setpoint = _vehicle_yaw;
-					_stab_yaw_ctl = true;
-				}
-
-				rover_attitude_setpoint_s rover_attitude_setpoint{};
-				rover_attitude_setpoint.timestamp = _timestamp;
-				rover_attitude_setpoint.yaw_setpoint = _stab_yaw_setpoint;
-				_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
-			}
-
-
+	} else { // Closed loop yaw control if the yaw rate input is zero (keep current yaw)
+		if (!_stab_yaw_ctl) {
+			_stab_yaw_setpoint = _vehicle_yaw;
+			_stab_yaw_ctl = true;
 		}
 
+		rover_attitude_setpoint_s rover_attitude_setpoint{};
+		rover_attitude_setpoint.timestamp = hrt_absolute_time();
+		rover_attitude_setpoint.yaw_setpoint = _stab_yaw_setpoint;
+		_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
 	}
 }
 

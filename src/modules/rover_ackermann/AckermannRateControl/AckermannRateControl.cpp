@@ -81,10 +81,6 @@ void AckermannRateControl::updateRateControl()
 			_estimated_speed_body_x = fabsf(_estimated_speed_body_x) >  _param_ro_speed_th.get() ? _estimated_speed_body_x : 0.f;
 		}
 
-		if (_vehicle_control_mode.flag_control_manual_enabled) {
-			generateRateAndThrottleSetpoint();
-		}
-
 		generateSteeringSetpoint();
 
 	} else { // Reset controller and slew rate when rate control is not active
@@ -102,28 +98,20 @@ void AckermannRateControl::updateRateControl()
 
 }
 
-void AckermannRateControl::generateRateAndThrottleSetpoint()
+void AckermannRateControl::acroMode()
 {
-	const bool acro_mode_enabled = _vehicle_control_mode.flag_control_manual_enabled
-				       && !_vehicle_control_mode.flag_control_position_enabled && !_vehicle_control_mode.flag_control_attitude_enabled;
-
-	if (acro_mode_enabled && _manual_control_setpoint_sub.updated()) { // Acro Mode
-		manual_control_setpoint_s manual_control_setpoint{};
-
-		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-			rover_throttle_setpoint_s rover_throttle_setpoint{};
-			rover_throttle_setpoint.timestamp = _timestamp;
-			rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-			rover_throttle_setpoint.throttle_body_y = 0.f;
-			_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
-			rover_rate_setpoint_s rover_rate_setpoint{};
-			rover_rate_setpoint.timestamp = _timestamp;
-			rover_rate_setpoint.yaw_rate_setpoint = matrix::sign(_estimated_speed_body_x) * math::interpolate<float>
-								(manual_control_setpoint.roll, -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-			_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
-		}
-
-	}
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	rover_throttle_setpoint_s rover_throttle_setpoint{};
+	rover_throttle_setpoint.timestamp = hrt_absolute_time();
+	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
+	rover_throttle_setpoint.throttle_body_y = 0.f;
+	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	rover_rate_setpoint_s rover_rate_setpoint{};
+	rover_rate_setpoint.timestamp = hrt_absolute_time();
+	rover_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * math::interpolate<float>
+						(manual_control_setpoint.roll, -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+	_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
 }
 
 void AckermannRateControl::generateSteeringSetpoint()

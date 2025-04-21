@@ -40,14 +40,19 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
+// Library includes
+#include <math.h>
+
 // uORB includes
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/rover_steering_setpoint.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/ackermann_velocity_setpoint.h>
+#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/trajectory_setpoint.h>
 
 // Local includes
 #include "AckermannActControl/AckermannActControl.hpp"
@@ -87,19 +92,33 @@ private:
 	void Run() override;
 
 	/**
-	 * @brief Generate and publish roverSteeringSetpoint and roverThrottleSetpoint from manualControlSetpoint (Manual Mode).
+	 * @brief Handle manual control
 	 */
-	void generateSteeringAndThrottleSetpoint();
+	void manualControl();
+
+	/**
+	 * @brief Handle offboard control
+	 * @return True if actuator control is handled through offboard
+	 */
+	bool offboardControl();
+
+	/**
+	 * @brief Update the controllers
+	 * @param vehicle_control_mode Vehicle control mode struct
+	 * @param actuator_control_enabled True if actuator control is enabled
+	 */
+	void updateControllers(vehicle_control_mode_s &vehicle_control_mode, bool actuator_control_enabled);
 
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	vehicle_control_mode_s _vehicle_control_mode{};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
-	uORB::Publication<rover_steering_setpoint_s> _rover_steering_setpoint_pub{ORB_ID(rover_steering_setpoint)};
+	uORB::Publication<ackermann_velocity_setpoint_s> _ackermann_velocity_setpoint_pub{ORB_ID(ackermann_velocity_setpoint)};
+	uORB::Publication<rover_position_setpoint_s> _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
 
 	// Class instances
 	AckermannActControl  _ackermann_act_control{this};
@@ -108,4 +127,7 @@ private:
 	AckermannVelControl  _ackermann_vel_control{this};
 	AckermannPosControl  _ackermann_pos_control{this};
 
+	// Variables
+	hrt_abstime _timestamp{0};
+	float _dt{0.f};
 };

@@ -73,6 +73,11 @@ public:
 	 */
 	void updateRateControl();
 
+	/**
+	 * @brief Generate and publish roverThrottleSetpoint and RoverRateSetpoint from manualControlSetpoint.
+	 */
+	void acroMode();
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -80,12 +85,6 @@ protected:
 	void updateParams() override;
 
 private:
-
-	/**
-	 * @brief Generate and publish roverRateSetpoint and roverThrottleSetpoint from manualControlSetpoint (Acro Mode).
-	 */
-	void generateRateAndThrottleSetpoint();
-
 	/**
 	 * @brief Generate and publish roverSteeringSetpoint from RoverRateSetpoint.
 	 */
