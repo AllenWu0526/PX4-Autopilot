@@ -1035,3 +1035,15 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
  *
  */
 PARAM_DEFINE_INT32(COM_MODE_ARM_CHK, 0);
+
+/**
+ * Actuator lockdown in HIL mode
+ *
+ * By default the actuator is lockdowned in HIL mode.
+ * Disable it to disallow lockdown.
+ *
+ * @group Commander
+ * @reboot_required true
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_HIL_LOCKDOWN, 1);
