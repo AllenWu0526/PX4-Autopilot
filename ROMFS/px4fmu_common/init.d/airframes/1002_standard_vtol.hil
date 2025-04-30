@@ -91,7 +91,7 @@ param set-default HIL_ACT_FUNC8 203
 
 param set SYS_HITL 1
 
-param set UAVCAN_ENABLE 0
+param set UAVCAN_ENABLE 1
 
 # disable some checks to allow to fly
 # - without real battery
