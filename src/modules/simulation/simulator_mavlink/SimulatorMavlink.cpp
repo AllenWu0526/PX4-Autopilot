@@ -188,6 +188,10 @@ void SimulatorMavlink::send_controls()
 
 void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &sensors)
 {
+	mavlink_log_info(_command_ack_pub, "HIL sensor ID: %d", sensors.id);
+	{asdasdasdasdas{{{{{{{{{{}}}
+	PX4_ERR("HIL sensor ID: %d", sensors.id);
+
 	// temperature only updated with baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
 		if (PX4_ISFINITE(sensors.temperature)) {
@@ -510,7 +514,7 @@ void SimulatorMavlink::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	last_time = now_us;
 #endif
-
+	PX4_INFO("HIL Update sensor !");
 	update_sensors(now_us, imu);
 
 	if (imu.id == 0) {
