@@ -367,9 +367,20 @@ private:
 		BARO		= 0b1101000000000,
 		DIFF_PRESS	= 0b10000000000
 	};
-	PX4Accelerometer *_px4_accel{nullptr};
-	PX4Gyroscope *_px4_gyro{nullptr};
-	PX4Magnetometer *_px4_mag{nullptr};
+
+	//CW modified for multi-sensor
+	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
+	PX4Accelerometer* _px4_accel_arr[ACCEL_COUNT_MAX] =  {nullptr,nullptr,nullptr};
+
+	static constexpr uint8_t GYRO_COUNT_MAX = 3;
+	PX4Gyroscope* _px4_gyro_arr[GYRO_COUNT_MAX] =  {nullptr,nullptr,nullptr};
+
+	static constexpr uint8_t MAG_COUNT_MAX = 2;
+	PX4Magnetometer* _px4_mag_arr[MAG_COUNT_MAX] =  {nullptr,nullptr};
+
+	//PX4Accelerometer *_px4_accel{nullptr};
+	//PX4Gyroscope *_px4_gyro{nullptr};
+	//PX4Magnetometer *_px4_mag{nullptr};
 
 	float _global_local_alt0{NAN};
 	MapProjection _global_local_proj_ref{};

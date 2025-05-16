@@ -72,9 +72,20 @@
 MavlinkReceiver::~MavlinkReceiver()
 {
 	delete _tune_publisher;
-	delete _px4_accel;
-	delete _px4_gyro;
-	delete _px4_mag;
+	//CW modified
+	for(uint8_t i=0; i<ACCEL_COUNT_MAX; i++){
+		delete _px4_accel_arr[i];
+	}
+	for(uint8_t i=0; i<GYRO_COUNT_MAX; i++){
+		delete _px4_gyro_arr[i];
+	}
+	for(uint8_t i=0; i<MAG_COUNT_MAX; i++){
+		delete _px4_mag_arr[i];
+	}
+	//delete _px4_mag;
+	//delete _px4_accel;
+	//delete _px4_gyro;
+
 #if !defined(CONSTRAINED_FLASH)
 	delete[] _received_msg_stats;
 #endif // !CONSTRAINED_FLASH
@@ -2272,6 +2283,24 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	// gyro
 	if ((hil_sensor.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
+		if (hil_sensor.id >= GYRO_COUNT_MAX) {
+			PX4_ERR("Number of simulated accelerometer %d out of range. Max: %d", hil_sensor.id, GYRO_COUNT_MAX);
+			return;
+		}
+		if (_px4_gyro_arr[hil_sensor.id] == nullptr) {
+			if(hil_sensor.id == 0) _px4_gyro_arr[0] = new PX4Gyroscope(1310988);  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+			if(hil_sensor.id == 1) _px4_gyro_arr[1] = new PX4Gyroscope(1310996);  // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+			if(hil_sensor.id == 2) _px4_gyro_arr[2] = new PX4Gyroscope(1311004);  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+		}
+		if (_px4_gyro_arr[hil_sensor.id] != nullptr) {
+			if (PX4_ISFINITE(temperature)) {
+				_px4_gyro_arr[hil_sensor.id]->set_temperature(temperature);
+			}
+			_px4_gyro_arr[hil_sensor.id]->update(timestamp, hil_sensor.xgyro, hil_sensor.ygyro, hil_sensor.zgyro);
+		}
+	}
+	/*
+	if ((hil_sensor.fields_updated & SensorSource::GYRO) == SensorSource::GYRO) {
 		if (_px4_gyro == nullptr) {
 			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 			_px4_gyro = new PX4Gyroscope(1310988);
@@ -2285,8 +2314,27 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 			_px4_gyro->update(timestamp, hil_sensor.xgyro, hil_sensor.ygyro, hil_sensor.zgyro);
 		}
 	}
+	*/
 
 	// accelerometer
+	if ((hil_sensor.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
+		if (hil_sensor.id >= ACCEL_COUNT_MAX) {
+			PX4_ERR("Number of simulated accelerometer %d out of range. Max: %d", hil_sensor.id, ACCEL_COUNT_MAX);
+			return;
+		}
+		if (_px4_accel_arr[hil_sensor.id] == nullptr) {
+			if(hil_sensor.id == 0) _px4_accel_arr[0] = new PX4Accelerometer(1310988); // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+			if(hil_sensor.id == 1) _px4_accel_arr[1] = new PX4Accelerometer(1310996); // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+			if(hil_sensor.id == 2) _px4_accel_arr[2] = new PX4Accelerometer(1311004); // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+		}
+		if (_px4_accel_arr[hil_sensor.id] != nullptr) {
+			if (PX4_ISFINITE(temperature)) {
+				_px4_accel_arr[hil_sensor.id]->set_temperature(temperature);
+			}
+			_px4_accel_arr[hil_sensor.id]->update(timestamp, hil_sensor.xacc, hil_sensor.yacc, hil_sensor.zacc);
+		}
+	}
+	/*
 	if ((hil_sensor.fields_updated & SensorSource::ACCEL) == SensorSource::ACCEL) {
 		if (_px4_accel == nullptr) {
 			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -2301,8 +2349,29 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 			_px4_accel->update(timestamp, hil_sensor.xacc, hil_sensor.yacc, hil_sensor.zacc);
 		}
 	}
+	*/
 
 	// magnetometer
+	if ((hil_sensor.fields_updated & SensorSource::MAG) == SensorSource::MAG) {
+		if (hil_sensor.id >= MAG_COUNT_MAX) {
+			PX4_ERR("Number of simulated magnetometer %d out of range. Max: %d", hil_sensor.id, MAG_COUNT_MAX);
+			return;
+		}
+		if (_px4_mag_arr[hil_sensor.id] == nullptr) {
+			if(hil_sensor.id == 0) _px4_mag_arr[0] = new PX4Magnetometer(197388);
+			if(hil_sensor.id == 1) _px4_mag_arr[1] = new PX4Magnetometer(197644);
+		}
+
+		if (_px4_mag_arr[hil_sensor.id] != nullptr) {
+			if (PX4_ISFINITE(temperature)) {
+				_px4_mag_arr[hil_sensor.id]->set_temperature(temperature);
+			}
+
+			_px4_mag_arr[hil_sensor.id]->update(timestamp, hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag);
+		}
+
+	}
+	/*
 	if ((hil_sensor.fields_updated & SensorSource::MAG) == SensorSource::MAG) {
 		if (_px4_mag == nullptr) {
 			// 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
@@ -2317,6 +2386,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 			_px4_mag->update(timestamp, hil_sensor.xmag, hil_sensor.ymag, hil_sensor.zmag);
 		}
 	}
+	*/
 
 	// baro
 	if ((hil_sensor.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
@@ -2665,6 +2735,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	}
 
 	/* accelerometer */
+	//CW bypass
+	/*
 	{
 		if (_px4_accel == nullptr) {
 			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -2682,7 +2754,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		}
 	}
 
-	/* gyroscope */
+	// gyroscope
 	{
 		if (_px4_gyro == nullptr) {
 			// 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
@@ -2697,6 +2769,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 			_px4_gyro->update(timestamp_sample, hil_state.rollspeed, hil_state.pitchspeed, hil_state.yawspeed);
 		}
 	}
+	*/
 
 	/* battery status */
 	{
