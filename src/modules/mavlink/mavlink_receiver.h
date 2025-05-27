@@ -339,7 +339,8 @@ private:
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
-	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
+	//uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
+	uORB::PublicationMulti<sensor_baro_s> 			_sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
 	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
@@ -377,6 +378,8 @@ private:
 
 	static constexpr uint8_t MAG_COUNT_MAX = 2;
 	PX4Magnetometer* _px4_mag_arr[MAG_COUNT_MAX] =  {nullptr,nullptr};
+
+	static constexpr uint8_t BARO_COUNT_MAX = 2;
 
 	//PX4Accelerometer *_px4_accel{nullptr};
 	//PX4Gyroscope *_px4_gyro{nullptr};

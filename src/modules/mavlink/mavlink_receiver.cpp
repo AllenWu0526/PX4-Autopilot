@@ -96,7 +96,9 @@ MavlinkReceiver::~MavlinkReceiver()
 	_manual_control_input_pub.unadvertise();
 	_ping_pub.unadvertise();
 	_radio_status_pub.unadvertise();
-	_sensor_baro_pub.unadvertise();
+	//_sensor_baro_pub.unadvertise();
+	_sensor_baro_pubs[0].unadvertise();
+	_sensor_baro_pubs[1].unadvertise();
 	_sensor_gps_pub.unadvertise();
 	_sensor_optical_flow_pub.unadvertise();
 }
@@ -2390,6 +2392,29 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	// baro
 	if ((hil_sensor.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
+
+		if (hil_sensor.id >= BARO_COUNT_MAX) {
+			PX4_ERR("Number of simulated baro %d out of range. Max: %d", hil_sensor.id, BARO_COUNT_MAX);
+		}
+
+		// publish
+		sensor_baro_s sensor_baro{};
+		sensor_baro.timestamp_sample = timestamp;
+		sensor_baro.pressure = hil_sensor.abs_pressure * 100.0f; // hPa to Pa
+		sensor_baro.temperature = hil_sensor.temperature;
+		sensor_baro.error_count = 0;
+		sensor_baro.timestamp = hrt_absolute_time();
+		if(hil_sensor.id == 0){
+			sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+			_sensor_baro_pubs[hil_sensor.id].publish(sensor_baro);
+		}else if(hil_sensor.id == 1){
+			sensor_baro.device_id = 6620428; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+			_sensor_baro_pubs[hil_sensor.id].publish(sensor_baro);
+		}
+	}
+
+	/*
+	if ((hil_sensor.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
 		// publish
 		sensor_baro_s sensor_baro{};
 		sensor_baro.timestamp_sample = timestamp;
@@ -2400,6 +2425,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		sensor_baro.timestamp = hrt_absolute_time();
 		_sensor_baro_pub.publish(sensor_baro);
 	}
+	*/
 
 	// differential pressure
 	if ((hil_sensor.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS) {
