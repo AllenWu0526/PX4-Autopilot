@@ -91,7 +91,7 @@ param set-default CA_SV_CS2_TYPE 3
 #param set-default HIL_ACT_FUNC8 203
 
 #Set IMU_INTEG_RATE = 200Hz
-param set IMU_INTEG_RATE 1
+param set IMU_INTEG_RATE 200
 
 #Run single EKF
 param set EKF2_MULTI_IMU 0
