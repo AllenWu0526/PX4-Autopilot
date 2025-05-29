@@ -340,13 +340,15 @@ private:
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
-	//CW modify for 2 baro sensors
+	//CW modify
+	//for 2 baro sensors
 	//uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_baro_s> 			_sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
 	//change differential pressure to multi-publication
 	uORB::PublicationMulti<differential_pressure_s>		_differential_pressure_pubs[2]{ORB_ID(differential_pressure), ORB_ID(differential_pressure)};
-
-	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+	//for 2 gps
+	//uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pubs[2]{ORB_ID(sensor_gps), ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	// ORB publications (queue length > 1)
@@ -386,6 +388,7 @@ private:
 
 	static constexpr uint8_t BARO_COUNT_MAX = 2;
 	static constexpr uint8_t DIFF_PRE_COUNT_MAX = 2;
+	static constexpr uint8_t GPS_COUNT_MAX = 2;
 
 	//PX4Accelerometer *_px4_accel{nullptr};
 	//PX4Gyroscope *_px4_gyro{nullptr};

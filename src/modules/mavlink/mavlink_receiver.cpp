@@ -99,7 +99,9 @@ MavlinkReceiver::~MavlinkReceiver()
 	//_sensor_baro_pub.unadvertise();
 	_sensor_baro_pubs[0].unadvertise();
 	_sensor_baro_pubs[1].unadvertise();
-	_sensor_gps_pub.unadvertise();
+	//_sensor_gps_pub.unadvertise();
+	_sensor_gps_pubs[0].unadvertise();
+	_sensor_gps_pubs[1].unadvertise();
 	_sensor_optical_flow_pub.unadvertise();
 }
 
@@ -2531,7 +2533,18 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	gps.timestamp = hrt_absolute_time();
 
-	_sensor_gps_pub.publish(gps);
+	//CW modify
+	if(hil_gps.id > GPS_COUNT_MAX){
+		PX4_ERR("Number of simulated GPS %d out of range. Max: %d", hil_gps.id, GPS_COUNT_MAX);
+		return;
+	}
+	//make difference in device ID for id 1
+	if(hil_gps.id == 1){
+		gps.device_id += gps.device_id;
+	}
+	_sensor_gps_pubs[hil_gps.id].publish(gps);
+
+	//_sensor_gps_pub.publish(gps);
 }
 
 void
