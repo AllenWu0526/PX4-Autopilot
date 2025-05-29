@@ -2395,6 +2395,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		if (hil_sensor.id >= BARO_COUNT_MAX) {
 			PX4_ERR("Number of simulated baro %d out of range. Max: %d", hil_sensor.id, BARO_COUNT_MAX);
+			return;
 		}
 
 		// publish
@@ -2406,10 +2407,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		sensor_baro.timestamp = hrt_absolute_time();
 		if(hil_sensor.id == 0){
 			sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-			_sensor_baro_pubs[hil_sensor.id].publish(sensor_baro);
+			_sensor_baro_pubs[0].publish(sensor_baro);
 		}else if(hil_sensor.id == 1){
 			sensor_baro.device_id = 6620428; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
-			_sensor_baro_pubs[hil_sensor.id].publish(sensor_baro);
+			_sensor_baro_pubs[1].publish(sensor_baro);
 		}
 	}
 
@@ -2431,12 +2432,32 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	if ((hil_sensor.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS) {
 		differential_pressure_s report{};
 		report.timestamp_sample = timestamp;
+		report.temperature = hil_sensor.temperature;
+		report.differential_pressure_pa = hil_sensor.diff_pressure * 100.0f; // hPa to Pa
+		report.timestamp = hrt_absolute_time();
+		if (hil_sensor.id >= DIFF_PRE_COUNT_MAX) {
+			PX4_ERR("Number of simulated differential pressure %d out of range. Max: %d", hil_sensor.id, DIFF_PRE_COUNT_MAX);
+			return;
+		}
+		if(hil_sensor.id == 0){
+			report.device_id = 1377548;   // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+			_differential_pressure_pubs[0].publish(report);
+		}else if(hil_sensor.id == 1){
+			report.device_id = 1377804;   // 1377804: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 6, TYPE: SIMULATION
+			_differential_pressure_pubs[1].publish(report);
+		}
+	}
+	/*
+	if ((hil_sensor.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS) {
+		differential_pressure_s report{};
+		report.timestamp_sample = timestamp;
 		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 		report.temperature = hil_sensor.temperature;
 		report.differential_pressure_pa = hil_sensor.diff_pressure * 100.0f; // hPa to Pa
 		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
+	*/
 
 	// battery status
 	{

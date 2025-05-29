@@ -297,7 +297,7 @@ private:
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
-	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
+	//uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
 	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};
@@ -339,8 +339,13 @@ private:
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
+
+	//CW modify for 2 baro sensors
 	//uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_baro_s> 			_sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
+	//change differential pressure to multi-publication
+	uORB::PublicationMulti<differential_pressure_s>		_differential_pressure_pubs[2]{ORB_ID(differential_pressure), ORB_ID(differential_pressure)};
+
 	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
@@ -380,6 +385,7 @@ private:
 	PX4Magnetometer* _px4_mag_arr[MAG_COUNT_MAX] =  {nullptr,nullptr};
 
 	static constexpr uint8_t BARO_COUNT_MAX = 2;
+	static constexpr uint8_t DIFF_PRE_COUNT_MAX = 2;
 
 	//PX4Accelerometer *_px4_accel{nullptr};
 	//PX4Gyroscope *_px4_gyro{nullptr};
