@@ -99,6 +99,7 @@ MavlinkReceiver::~MavlinkReceiver()
 	//_sensor_baro_pub.unadvertise();
 	_sensor_baro_pubs[0].unadvertise();
 	_sensor_baro_pubs[1].unadvertise();
+	_sensor_baro_pubs[2].unadvertise();
 	//_sensor_gps_pub.unadvertise();
 	_sensor_gps_pubs[0].unadvertise();
 	_sensor_gps_pubs[1].unadvertise();
@@ -2364,6 +2365,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		if (_px4_mag_arr[hil_sensor.id] == nullptr) {
 			if(hil_sensor.id == 0) _px4_mag_arr[0] = new PX4Magnetometer(197388);
 			if(hil_sensor.id == 1) _px4_mag_arr[1] = new PX4Magnetometer(197644);
+			if(hil_sensor.id == 2) _px4_mag_arr[2] = new PX4Magnetometer(197900);
 		}
 
 		if (_px4_mag_arr[hil_sensor.id] != nullptr) {
@@ -2413,6 +2415,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		}else if(hil_sensor.id == 1){
 			sensor_baro.device_id = 6620428; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
 			_sensor_baro_pubs[1].publish(sensor_baro);
+		}
+		else if(hil_sensor.id == 2){
+			sensor_baro.device_id = 6620684; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 6, TYPE: SIMULATION
+			_sensor_baro_pubs[2].publish(sensor_baro);
 		}
 	}
 
@@ -2534,14 +2540,19 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.timestamp = hrt_absolute_time();
 
 	//CW modify
+	//Note that PX4 seems to support only 2 gps uorb topic!
 	if(hil_gps.id > GPS_COUNT_MAX){
 		PX4_ERR("Number of simulated GPS %d out of range. Max: %d", hil_gps.id, GPS_COUNT_MAX);
 		return;
 	}
 	//make difference in device ID for id 1
-	if(hil_gps.id == 1){
-		gps.device_id += gps.device_id;
+	if(hil_gps.id == 0){
+		//do nothing
+	}else if(hil_gps.id == 1){
+		device_id.devid_s.bus += 1;
+		gps.device_id = device_id.devid;
 	}
+
 	_sensor_gps_pubs[hil_gps.id].publish(gps);
 
 	//_sensor_gps_pub.publish(gps);

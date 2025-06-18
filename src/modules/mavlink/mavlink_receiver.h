@@ -343,10 +343,10 @@ private:
 	//CW modify
 	//for 2 baro sensors
 	//uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_baro_s> 			_sensor_baro_pubs[2] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
+	uORB::PublicationMulti<sensor_baro_s> 			_sensor_baro_pubs[3] {{ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}, {ORB_ID(sensor_baro)}};
 	//change differential pressure to multi-publication
-	uORB::PublicationMulti<differential_pressure_s>		_differential_pressure_pubs[2]{ORB_ID(differential_pressure), ORB_ID(differential_pressure)};
-	//for 2 gps
+	uORB::PublicationMulti<differential_pressure_s>		_differential_pressure_pubs[2]{{ORB_ID(differential_pressure)}, {ORB_ID(differential_pressure)}};
+	//for 3 gps
 	//uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pubs[2]{ORB_ID(sensor_gps), ORB_ID(sensor_gps)};
 	uORB::PublicationMulti<sensor_optical_flow_s>           _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
@@ -383,10 +383,10 @@ private:
 	static constexpr uint8_t GYRO_COUNT_MAX = 3;
 	PX4Gyroscope* _px4_gyro_arr[GYRO_COUNT_MAX] =  {nullptr,nullptr,nullptr};
 
-	static constexpr uint8_t MAG_COUNT_MAX = 2;
-	PX4Magnetometer* _px4_mag_arr[MAG_COUNT_MAX] =  {nullptr,nullptr};
+	static constexpr uint8_t MAG_COUNT_MAX = 3;
+	PX4Magnetometer* _px4_mag_arr[MAG_COUNT_MAX] =  {nullptr,nullptr,nullptr};
 
-	static constexpr uint8_t BARO_COUNT_MAX = 2;
+	static constexpr uint8_t BARO_COUNT_MAX = 3;
 	static constexpr uint8_t DIFF_PRE_COUNT_MAX = 2;
 	static constexpr uint8_t GPS_COUNT_MAX = 2;
 
