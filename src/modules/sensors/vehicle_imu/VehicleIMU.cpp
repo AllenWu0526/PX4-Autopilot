@@ -50,8 +50,18 @@ namespace sensors
 VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, config),
+
+	//CW added, subscribe #0 sensor and #1 vibration
+	_sensor_accel_sub0(nullptr),
+	_sensor_gyro_sub0(nullptr),
+	_sensor_accel_sub1(nullptr),
+	_sensor_gyro_sub1(nullptr),
+	_px4_accel(1311004),
+	_px4_gyro(1311004),
+
 	_sensor_accel_sub(ORB_ID(sensor_accel), accel_index),
 	_sensor_gyro_sub(this, ORB_ID(sensor_gyro), gyro_index),
+
 	_instance(instance)
 {
 	_imu_integration_interval_us = 1e6f / _param_imu_integ_rate.get();
@@ -75,6 +85,24 @@ VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, co
 	// advertise immediately to ensure consistent ordering
 	_vehicle_imu_pub.advertise();
 	_vehicle_imu_status_pub.advertise();
+
+	//CW added
+	//only start to subscribe in VIB HIL mode to save resource !
+	if(_param_com_hil_vib_test.get() && (_param_sys_hil.get() == 1)){
+		isVibHIL = true;
+		_sensor_accel_sub0 = new uORB::Subscription(ORB_ID(sensor_accel), 0);
+		_sensor_gyro_sub0 = new uORB::Subscription(ORB_ID(sensor_gyro), 0);
+		_sensor_accel_sub1 = new uORB::Subscription(ORB_ID(sensor_accel), 1);
+		_sensor_gyro_sub1 = new uORB::Subscription(ORB_ID(sensor_gyro), 1);
+		//HPF
+		float coff = _param_hil_vib_hp_cutf.get();
+		_accel_hpf2_x = MyFilter2p<float>(true, coff);
+		_accel_hpf2_y = MyFilter2p<float>(true, coff);
+		_accel_hpf2_z = MyFilter2p<float>(true, coff);
+		_gyro_hpf2_x = MyFilter2p<float>(true, coff);
+		_gyro_hpf2_y = MyFilter2p<float>(true, coff);
+		_gyro_hpf2_z = MyFilter2p<float>(true, coff);
+	}
 }
 
 VehicleIMU::~VehicleIMU()
@@ -86,6 +114,12 @@ VehicleIMU::~VehicleIMU()
 
 	_vehicle_imu_pub.unadvertise();
 	_vehicle_imu_status_pub.unadvertise();
+
+	//CW added, release pointer
+	if(_sensor_accel_sub0 != nullptr) delete _sensor_accel_sub0;
+	if(_sensor_accel_sub1 != nullptr) delete _sensor_accel_sub1;
+	if(_sensor_gyro_sub0 != nullptr) delete _sensor_accel_sub0;
+	if(_sensor_gyro_sub1 != nullptr) delete _sensor_accel_sub1;
 }
 
 bool VehicleIMU::Start()
@@ -95,6 +129,7 @@ bool VehicleIMU::Start()
 
 	_sensor_gyro_sub.registerCallback();
 	ScheduleNow();
+
 	return true;
 }
 
@@ -169,6 +204,17 @@ bool VehicleIMU::ParametersUpdate(bool force)
 
 void VehicleIMU::Run()
 {
+	//CW added, Update HPF cutoff
+	if(isVibHIL){
+		float cur_coff = _param_hil_vib_hp_cutf.get();
+		_accel_hpf2_x.set_cutoff_only(cur_coff);
+		_accel_hpf2_y.set_cutoff_only(cur_coff);
+		_accel_hpf2_z.set_cutoff_only(cur_coff);
+		_gyro_hpf2_x.set_cutoff_only(cur_coff);
+		_gyro_hpf2_y.set_cutoff_only(cur_coff);
+		_gyro_hpf2_z.set_cutoff_only(cur_coff);
+	}
+
 	const hrt_abstime now_us = hrt_absolute_time();
 
 	const bool parameters_updated = ParametersUpdate();
@@ -285,6 +331,11 @@ bool VehicleIMU::UpdateAccel()
 
 	// integrate queued accel
 	sensor_accel_s accel;
+	//CW added
+	sensor_accel_s accel_tmp;
+	float ax = 0;
+	float ay = 0;
+	float az = 0;
 
 	if (_sensor_accel_sub.update(&accel)) {
 		if (_sensor_accel_sub.get_last_generation() != _accel_last_generation + 1) {
@@ -352,7 +403,29 @@ bool VehicleIMU::UpdateAccel()
 		const float dt = (accel.timestamp_sample - _accel_timestamp_sample_last) * 1e-6f;
 		_accel_timestamp_sample_last = accel.timestamp_sample;
 
-		const Vector3f accel_raw{accel.x, accel.y, accel.z};
+		//CW added
+		ax = accel.x;
+		ay = accel.y;
+		az = accel.z;
+		if(isVibHIL){
+			if(_instance == 0){
+				_sensor_accel_sub0->update(&accel_tmp);
+				float vib_x = _accel_hpf2_x.apply(accel.x, dt);
+				float vib_y = _accel_hpf2_y.apply(accel.y, dt);
+				float vib_z = _accel_hpf2_z.apply(accel.z, dt);
+				_px4_accel.update(accel.timestamp_sample, vib_x, vib_y, vib_z);
+			}else if(_instance > 1){
+				//Data from HIL
+				_sensor_accel_sub1->update(&accel_tmp);git
+				ax += accel_tmp.x;
+				ay += accel_tmp.y;
+				az += accel_tmp.z;
+			}
+		}
+
+		const Vector3f accel_raw{ax, ay, az};
+		//const Vector3f accel_raw{accel.x, accel.y, accel.z};
+
 		_raw_accel_mean.update(accel_raw);
 		_accel_integrator.put(accel_raw, dt);
 
@@ -414,6 +487,11 @@ bool VehicleIMU::UpdateGyro()
 
 	// integrate queued gyro
 	sensor_gyro_s gyro;
+	//CW added
+	sensor_gyro_s gyro_tmp;
+	float gx = 0;
+	float gy = 0;
+	float gz = 0;
 
 	if (_sensor_gyro_sub.update(&gyro)) {
 		if (_sensor_gyro_sub.get_last_generation() != _gyro_last_generation + 1) {
@@ -481,7 +559,28 @@ bool VehicleIMU::UpdateGyro()
 			}
 		}
 
-		const Vector3f gyro_raw{gyro.x, gyro.y, gyro.z};
+		//CW added
+		gx = gyro.x;
+		gy = gyro.y;
+		gz = gyro.z;
+		if(isVibHIL){
+			if(_instance == 0){
+				_sensor_gyro_sub0->update(&gyro_tmp);
+				float vib_x = _gyro_hpf2_x.apply(gyro.x, dt);
+				float vib_y = _gyro_hpf2_y.apply(gyro.y, dt);
+				float vib_z = _gyro_hpf2_z.apply(gyro.z, dt);
+				_px4_gyro.update(gyro.timestamp_sample, vib_x, vib_y, vib_z);
+			}else if(_instance > 1){
+				//Data from HIL
+				_sensor_gyro_sub1->update(&gyro_tmp);
+				gx += gyro_tmp.x;
+				gy += gyro_tmp.y;
+				gy += gyro_tmp.z;
+			}
+		}
+
+		//const Vector3f gyro_raw{gyro.x, gyro.y, gyro.z};
+		const Vector3f gyro_raw{gx, gy, gz};
 		_raw_gyro_mean.update(gyro_raw);
 		_gyro_integrator.put(gyro_raw, dt);
 
@@ -662,7 +761,15 @@ bool VehicleIMU::Publish()
 			imu.accel_calibration_count = _accel_calibration.calibration_count();
 			imu.gyro_calibration_count = _gyro_calibration.calibration_count();
 			imu.timestamp = hrt_absolute_time();
-			_vehicle_imu_pub.publish(imu);
+
+			//CW added
+			//bypass publish of #0 (onboard) & #1 (vib) in HIL VIB Test
+			if(isVibHIL){
+				if(_instance > 1){
+					_vehicle_imu_pub.publish(imu);
+				}
+			}
+			//_vehicle_imu_pub.publish(imu);
 
 			// reset clip counts
 			_delta_angle_clipping = 0;

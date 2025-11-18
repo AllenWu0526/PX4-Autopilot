@@ -1057,3 +1057,25 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
  */
 PARAM_DEFINE_INT32(COM_HIL_LOCKDOWN, 1);
 
+/**
+ * If using the on board IMU vibration for HIL test
+ *
+ * If true, the primary IMU will be activated.
+ * # 0 "sensor_accel" & "sensor_gyro" will be published.
+ * But the derived topic (ex:vehicle_imu) will not be published.
+ * The #0 will go through HPF2 and save as #1.
+ * The #1 will be added to the IMU data from HIL(#2).
+ *
+ * Support list and the activated IMU:
+ * Holybro v6x Pro 	-> ADIS16470
+ * Ark v6x 		-> ICM-42688-P
+ *
+ * The activation condition is defined at:
+ * ROMFS/px4fmu_common/init.d/rcS
+ *
+ * @group Commander
+ * @reboot_required true
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_HIL_VIB_TEST, 0);
+

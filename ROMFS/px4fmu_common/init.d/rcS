@@ -346,6 +346,31 @@ else
 			tune_control play error
 		fi
 
+		#CW added for HIL vibration in the loop
+		if param greater COM_HIL_VIB_TEST 0
+		then
+			#For Holybro
+			#adis16470 -s -R 0 start
+			if ver hwtypecmp V6X006
+			then
+				# Internal SPI bus ICM45686
+				# Only use the primary IMU
+				adis16470 -s -R 0 start
+				#iim42652 -s -R 6 start
+				#icm45686 -s -R 10 start
+			fi
+
+			#For Ark
+			if ver hwtypecmp ARKV6X000
+			then
+				# Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
+				# Only use the primary IMU (bus 2)
+				#iim42652 -R 3 -s -b 1 -C 32051 start
+				icm42688p -R 9 -s -b 2 -C 32051 start
+				#icm42688p -R 6 -s -b 3 -C 32051 start
+			fi
+		fi
+
 		sensors start -h
 		commander start -h
 		# disable GPS

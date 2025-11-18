@@ -58,7 +58,147 @@
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
+//CW HPF for vibration extraction
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+
 using namespace time_literals;
+
+//CW added 2nd HPF/LPF
+template<typename T>
+class MyFilter2p
+{
+public:
+	MyFilter2p() = default;
+	MyFilter2p(bool isHP, float cutoff_freq)
+	{
+		// set initial parameters
+		_cutoff_freq = cutoff_freq;
+		_isHP = isHP;
+	}
+
+	// Change filter parameters
+	void set_cutoff_frequency(float sample_freq)
+	{
+		// reset delay elements on filter change
+		//_delay_element_1 = {};
+		//_delay_element_2 = {};
+
+		//_cutoff_freq = cutoff_freq;
+		_sample_freq = sample_freq;
+
+		const float fr = _sample_freq / _cutoff_freq;
+		const float ohm = tanf(M_PI_F / fr);
+		const float c = 1.f + 2.f * cosf(M_PI_F / 4.f) * ohm + ohm * ohm;
+
+		if(!_isHP){
+		//original LPF2
+		_b0 = ohm * ohm / c;
+		_b1 = 2.f * _b0;
+		_b2 = _b0;
+		}else{
+		//change to HPF2
+		_b0 = 1.f / c;
+		_b1 = (-2.f) * _b0;
+		_b2 = _b0;
+		}
+
+		_a1 = 2.f * (ohm * ohm - 1.f) / c;
+		_a2 = (1.f - 2.f * cosf(M_PI_F / 4.f) * ohm + ohm * ohm) / c;
+	}
+	//Just update cutoff
+	void set_cutoff_only(float cutoff_freq){
+		_cutoff_freq = cutoff_freq;
+	}
+
+	/**
+	 * Add a new raw value to the filter
+	 *
+	 * @return retrieve the filtered result
+	 */
+	inline T apply(const T &sample, float dt)
+	{
+		set_cutoff_frequency(1.0f/dt);
+		// Direct Form II implementation
+		T delay_element_0{sample - _delay_element_1 *_a1 - _delay_element_2 * _a2};
+
+		const T output{delay_element_0 *_b0 + _delay_element_1 *_b1 + _delay_element_2 * _b2};
+
+		_delay_element_2 = _delay_element_1;
+		_delay_element_1 = delay_element_0;
+
+		return output;
+	}
+
+	// Filter array of samples in place using the Direct form II.
+	inline void applyArray(T samples[], int num_samples)
+	{
+		for (int n = 0; n < num_samples; n++) {
+			samples[n] = apply(samples[n]);
+		}
+	}
+
+	// Return the cutoff frequency
+	float get_cutoff_freq() const { return _cutoff_freq; }
+
+	// Return the sample frequency
+	float get_sample_freq() const { return _sample_freq; }
+
+	float getMagnitudeResponse(float frequency) const;
+
+	// Reset the filter state to this value
+	T reset(const T &sample)
+	{
+		const T input = isFinite(sample) ? sample : T{};
+
+		if (fabsf(1 + _a1 + _a2) > FLT_EPSILON) {
+			_delay_element_1 = _delay_element_2 = input / (1 + _a1 + _a2);
+
+			if (!isFinite(_delay_element_1) || !isFinite(_delay_element_2)) {
+				_delay_element_1 = _delay_element_2 = input;
+			}
+
+		} else {
+			_delay_element_1 = _delay_element_2 = input;
+		}
+
+		return apply(input);
+	}
+
+	void disable()
+	{
+		// no filtering
+		_sample_freq = 0.f;
+		_cutoff_freq = 0.f;
+
+		_delay_element_1 = {};
+		_delay_element_2 = {};
+
+		_b0 = 1.f;
+		_b1 = 0.f;
+		_b2 = 0.f;
+
+		_a1 = 0.f;
+		_a2 = 0.f;
+	}
+
+protected:
+	T _delay_element_1{}; // buffered sample -1
+	T _delay_element_2{}; // buffered sample -2
+
+	// All the coefficients are normalized by a0, so a0 becomes 1 here
+	float _a1{0.f};
+	float _a2{0.f};
+
+	float _b0{1.f};
+	float _b1{0.f};
+	float _b2{0.f};
+
+	float _cutoff_freq{0.f};
+	float _sample_freq{0.f};
+
+	bool _isHP;
+};
 
 namespace sensors
 {
@@ -77,6 +217,27 @@ public:
 	void PrintStatus();
 
 private:
+	//CW added HPF for sensor_gyro/accel instance #0, process in #1 vehicle IMU
+	//CW added for #0 (vibration)
+	bool isVibHIL = false;
+	static constexpr float _cutoff_freq_hz = 50;
+	static constexpr float _sample_rate_hz = 200; //only use for the first time ! (we used time variant HPF2 !)
+
+	uORB::Subscription* _sensor_accel_sub0;
+	uORB::Subscription* _sensor_gyro_sub0;
+	uORB::Subscription* _sensor_accel_sub1;
+	uORB::Subscription* _sensor_gyro_sub1;
+
+	PX4Accelerometer _px4_accel;
+	PX4Gyroscope _px4_gyro;
+
+	MyFilter2p<float> _accel_hpf2_x;
+	MyFilter2p<float> _accel_hpf2_y;
+	MyFilter2p<float> _accel_hpf2_z;
+	MyFilter2p<float> _gyro_hpf2_x;
+	MyFilter2p<float> _gyro_hpf2_y;
+	MyFilter2p<float> _gyro_hpf2_z;
+
 	bool ParametersUpdate(bool force = false);
 	bool Publish();
 	void Run() override;
@@ -201,7 +362,10 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
 		(ParamBool<px4::params::SENS_IMU_AUTOCAL>) _param_sens_imu_autocal,
-		(ParamBool<px4::params::SENS_IMU_CLPNOTI>) _param_sens_imu_notify_clipping
+		(ParamBool<px4::params::SENS_IMU_CLPNOTI>) _param_sens_imu_notify_clipping,
+		(ParamFloat<px4::params::HIL_VIB_HP_CUTF>) _param_hil_vib_hp_cutf,
+		(ParamBool<px4::params::COM_HIL_VIB_TEST>)  _param_com_hil_vib_test,
+		(ParamInt<px4::params::SYS_HITL>) _param_sys_hil
 	)
 };
 

@@ -215,11 +215,11 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("battery_status", 200, 2);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000, 2);
-	add_optional_topic_multi("sensor_accel", 1000, 4);
+	add_optional_topic_multi("sensor_accel", 5, 4);
 	add_optional_topic_multi("sensor_baro", 1000, 4);
 	add_topic_multi("sensor_gps", 1000, 2);
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
-	add_optional_topic_multi("sensor_gyro", 1000, 4);
+	add_optional_topic_multi("sensor_gyro", 5, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("sensor_optical_flow", 1000, 2);
 
@@ -359,17 +359,17 @@ void LoggedTopics::add_estimator_replay_topics()
 
 void LoggedTopics::add_thermal_calibration_topics()
 {
-	add_topic_multi("sensor_accel", 100, 4);
+	add_topic_multi("sensor_accel", 5, 4);
 	add_topic_multi("sensor_baro", 100, 4);
-	add_topic_multi("sensor_gyro", 100, 4);
+	add_topic_multi("sensor_gyro", 5, 4);
 	add_topic_multi("sensor_mag", 100, 4);
 }
 
 void LoggedTopics::add_sensor_comparison_topics()
 {
-	add_topic_multi("sensor_accel", 100, 4);
+	add_topic_multi("sensor_accel", 5, 4);
 	add_topic_multi("sensor_baro", 100, 4);
-	add_topic_multi("sensor_gyro", 100, 4);
+	add_topic_multi("sensor_gyro", 5, 4);
 	add_topic_multi("sensor_mag", 100, 4);
 }
 

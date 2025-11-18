@@ -72,3 +72,16 @@ PARAM_DEFINE_INT32(SENS_IMU_AUTOCAL, 1);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_IMU_CLPNOTI, 1);
+
+/**
+ * HPF2 cutoff frequency for vibration HIL mode.
+ *
+ * HPF2 cutoff frequency for vibration HIL mode.
+ * This value should no larger than 1/2 HIL rate.
+ *
+ * @min 0.1
+ * @max 100
+ * @unit Hz
+ * @group Sensors
+ */
+PARAM_DEFINE_FLOAT(HIL_VIB_HP_CUTF, 30.0f);

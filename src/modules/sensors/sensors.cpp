@@ -451,6 +451,9 @@ void Sensors::InitializeVehicleIMU()
 {
 	// create a VehicleIMU instance for each accel/gyro pair
 	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		//CW modify
+		//do not generate IMU instance for accel/gyro #1, it is pure vibration
+		if((_hil_enabled == true) && (_param_com_hil_vib_test.get() == true) && (i == 1)) continue;
 		if (_vehicle_imu_list[i] == nullptr) {
 
 			uORB::Subscription accel_sub{ORB_ID(sensor_accel), i};

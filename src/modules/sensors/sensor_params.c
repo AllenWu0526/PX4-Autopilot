@@ -233,3 +233,23 @@ PARAM_DEFINE_INT32(SENS_IMU_MODE, 1);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_INT_BARO_EN, 1);
+
+/**
+ * Cutoff frequency for on board IMU #0 vibration
+ *
+ * This is used for HIL vibration in the loop test.
+ *
+ * @unit Hz
+ * @group Sensors
+ */
+PARAM_DEFINE_FLOAT(HIL_ACCEL_CUTOFF, 1.0f);
+
+/**
+ * Cutoff frequency for on board IMU #0 vibration
+ *
+ * This is used for HIL vibration in the loop test.
+ *
+ * @unit Hz
+ * @group Sensors
+ */
+PARAM_DEFINE_FLOAT(HIL_GYRO_CUTOFF, 1.0f);

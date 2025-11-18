@@ -261,6 +261,9 @@ private:
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,
+
+		//CW added for VIB HIL
+		(ParamBool<px4::params::COM_HIL_VIB_TEST>)  _param_com_hil_vib_test
 	)
 };

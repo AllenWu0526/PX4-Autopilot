@@ -347,6 +347,7 @@ private:
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_takeoff_finished_action,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
-		(ParamBool<px4::params::COM_HIL_LOCKDOWN>)  _param_com_hil_lockdown
+		(ParamBool<px4::params::COM_HIL_LOCKDOWN>)  _param_com_hil_lockdown,
+		(ParamBool<px4::params::COM_HIL_VIB_TEST>)  _param_com_hil_vib_test
 	)
 };
