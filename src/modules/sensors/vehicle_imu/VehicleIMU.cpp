@@ -416,7 +416,7 @@ bool VehicleIMU::UpdateAccel()
 				_px4_accel.update(accel.timestamp_sample, vib_x, vib_y, vib_z);
 			}else if(_instance > 1){
 				//Data from HIL
-				_sensor_accel_sub1->update(&accel_tmp);git
+				_sensor_accel_sub1->update(&accel_tmp);
 				ax += accel_tmp.x;
 				ay += accel_tmp.y;
 				az += accel_tmp.z;
@@ -768,8 +768,9 @@ bool VehicleIMU::Publish()
 				if(_instance > 1){
 					_vehicle_imu_pub.publish(imu);
 				}
+			}else{
+				_vehicle_imu_pub.publish(imu);
 			}
-			//_vehicle_imu_pub.publish(imu);
 
 			// reset clip counts
 			_delta_angle_clipping = 0;
