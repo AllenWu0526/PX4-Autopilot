@@ -78,20 +78,9 @@ public:
 		const float ohm = tanf(M_PI_F / fr);
 		const float c = 1.f + 2.f * cosf(M_PI_F / 4.f) * ohm + ohm * ohm;
 
-		//CW modified
-		//original LPF2
-		/*
 		_b0 = ohm * ohm / c;
 		_b1 = 2.f * _b0;
 		_b2 = _b0;
-		*/
-
-		//change to HPF2
-		/*
-		_b0 = 1.f / c;
-		_b1 = (-2.f) * _b0;
-		_b2 = _b0;
-		*/
 
 		_a1 = 2.f * (ohm * ohm - 1.f) / c;
 		_a2 = (1.f - 2.f * cosf(M_PI_F / 4.f) * ohm + ohm * ohm) / c;
